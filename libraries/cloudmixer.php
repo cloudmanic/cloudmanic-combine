@@ -26,6 +26,12 @@ class Cloudmixer
 	private $_production = TRUE;
 	private $_js_last_modified = 0;
 	private $_css_last_modified = 0;
+	private $_js_last_build = 0;
+	private $_css_last_build = 0;
+	private $_new_js_last_build = 0;
+	private $_new_css_last_build = 0;
+	private $_build_file_name = 'last_build.txt';
+	private $_build_file;
 	
 	//
 	// Constructor ….
@@ -33,7 +39,6 @@ class Cloudmixer
 	function __construct()
 	{
 		$this->_CI =& get_instance();
-		log_message('debug', 'Cloudmixer Library initialized.');
 		
 		// Load the configs 
 		if($this->_CI->config->load('cloudmixer', TRUE, TRUE))
@@ -50,7 +55,25 @@ class Cloudmixer
 			$this->_production = FALSE;
 		}
 		
+		// Make sure the config folder is writeable.
+		$this->_check_cache_dir();
+		
+		// We store a text file with a time stamp of the last modified.
+		// When in production we look for any files that have a modify
+		// timestamp newer than this value. This is how we know to rebuild.
+		$this->_build_file = $this->_config['cache_dir'] . $this->_build_file_name;
+		if(is_file($this->_build_file))
+		{
+			$tmp = file_get_contents($this->_build_file);
+			if(! empty($tmp))
+			{
+				list($this->_js_last_build, $this->_css_last_build) = explode(':::', $tmp);  
+			}
+		}
+		
 					$this->_production = TRUE;
+					
+		log_message('debug', 'Cloudmixer Library initialized.');
 	}
 	
 	//
@@ -93,6 +116,21 @@ class Cloudmixer
 	
 	// -------------- Private Helper Functions ------------------- //
 	
+	// 
+	// Check or error if cache dir is not writeable or present.
+	//
+	private function _check_cache_dir()
+	{
+		if(is_dir($this->_config['cache_dir']) && is_writable($this->_config['cache_dir']))
+		{
+			return 1;
+		}
+
+		$msg = 'Cache directory is not present or not writeable. Please create directory and set it with 777 permissions.';
+		log_message('debug', $msg);
+		die($msg);
+	}
+	
 	//
 	// Build and return the css link tags to be displayed. If in 
 	// production we make or grab the combined file.
@@ -112,7 +150,7 @@ class Cloudmixer
 				$this->_js_last_modified = max($this->_js_last_modified, 
 																		filemtime(realpath($this->_config['style_dir'] . $row)));
 			
-				$css .= $this->_minify('css', $this->_config['style_dir'] . $row);
+				//$css .= $this->_minify('css', $this->_config['style_dir'] . $row);
 			}
 		}
 		
@@ -126,6 +164,7 @@ class Cloudmixer
 	private function _build_js()
 	{
 		$js = '';
+		$files = array();
 		
 		foreach($this->_js AS $key => $row)
 		{
@@ -135,10 +174,30 @@ class Cloudmixer
 				$js .= $this->_tag('js', $this->_config['js_base_url'] . $row);
 			} else 
 			{
+				$files[] = $this->_config['script_dir'] . $row;
 				$this->_css_last_modified = max($this->_css_last_modified, 
 																		filemtime(realpath($this->_config['script_dir'] . $row)));
 																				
-				$js .= $this->_minify('js', $this->_config['script_dir'] . $row);
+				//$js .= $this->_minify('js', $this->_config['script_dir'] . $row);
+			}
+		}
+		
+		// Now if we are in production and we have a modified file we update the 
+		// cached javascript file. 
+		if($this->_production)
+		{
+			if($this->_js_last_modified > $this->_js_last_build)
+			{
+				$mini = '';
+				foreach($files AS $key => $row)
+				{
+					$name =  md5($this->_js_last_modified) . '.js';
+					$new = $this->_config['cache_dir'] . $name;
+					$mini .= $this->_minify('js', $row);
+					file_put_contents($new, trim($mini));
+					$this->_new_js_last_build = time();
+					$js = $this->_tag('js', $this->_config['cache_base_url'] . $name);
+				}
 			}
 		}
 		
