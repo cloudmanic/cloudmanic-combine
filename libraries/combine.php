@@ -17,21 +17,18 @@
 //							files change.
 //
 
-class Cloudmixer
+class Combine
 {
 	private $_CI;
 	private $_config;
 	private $_js = array();
 	private $_css = array();
 	private $_production = TRUE;
-	private $_js_last_modified = 0;
-	private $_css_last_modified = 0;
-	private $_js_last_build = 0;
-	private $_css_last_build = 0;
-	private $_new_js_last_build = 0;
-	private $_new_css_last_build = 0;
 	private $_build_file_name = 'last_build.txt';
 	private $_build_file;
+	private $_last_build_config = array();
+	private $_css_last_modified = 0;
+	private $_js_last_modified = 0;
 	
 	//
 	// Constructor ….
@@ -39,14 +36,7 @@ class Cloudmixer
 	function __construct()
 	{
 		$this->_CI =& get_instance();
-		
-		// Load the configs 
-		if($this->_CI->config->load('cloudmixer', TRUE, TRUE))
-		{
-			log_message('debug', 'Cloudmixer config loaded from config file.');
-			
-			$this->_config = $this->_CI->config->item('cloudmixer');
-		}
+		$this->_config = $this->_CI->config->item('combine');
 		
 		// Figure out what mode we are in. If in development we don't do
 		// much heavly lifting.
@@ -62,18 +52,12 @@ class Cloudmixer
 		// When in production we look for any files that have a modify
 		// timestamp newer than this value. This is how we know to rebuild.
 		$this->_build_file = $this->_config['cache_dir'] . $this->_build_file_name;
-		if(is_file($this->_build_file))
-		{
-			$tmp = file_get_contents($this->_build_file);
-			if(! empty($tmp))
-			{
-				list($this->_js_last_build, $this->_css_last_build) = explode(':::', $tmp);  
-			}
-		}
+		$this->_load_last_build();
+		
 		
 					$this->_production = TRUE;
 					
-		log_message('debug', 'Cloudmixer Library initialized.');
+		log_message('debug', 'Combine Library initialized.');
 	}
 	
 	//
@@ -138,6 +122,7 @@ class Cloudmixer
 	private function _build_css()
 	{
 		$css = '';
+		$files = array();
 		
 		foreach($this->_css AS $key => $row)
 		{
@@ -147,10 +132,39 @@ class Cloudmixer
 				$css .= $this->_tag('css', $this->_config['css_base_url'] . $row);
 			} else 
 			{
-				$this->_js_last_modified = max($this->_js_last_modified, 
+				$files[] = $this->_config['style_dir'] . $row;
+				$this->_css_last_modified = max($this->_css_last_modified, 
 																		filemtime(realpath($this->_config['style_dir'] . $row)));
-			
-				//$css .= $this->_minify('css', $this->_config['style_dir'] . $row);
+			}
+		}
+		
+		// Now if we are in production and we have a modified file we update the 
+		// cached css file. 
+		if($this->_production)
+		{
+			if(($this->_css_last_modified > $this->_last_build_config['css_last_build']) ||
+					($this->_last_build_config['css_file_count'] != count($files)))
+			{
+				$mini = '';
+				
+				foreach($files AS $key => $row)
+				{
+					$mini .= $this->_minify('css', $row);
+				}
+				
+				// Write out new minified file.
+				$this->_new_css_last_build = time();
+				$name =  md5($this->_new_css_last_build) . '.css';
+				$new = $this->_config['cache_dir'] . $name;
+				file_put_contents($new, trim($mini));
+				
+				$css = $this->_tag('css', $this->_config['cache_base_url'] . $name);
+				$this->_write_last_build('css_last_build', $this->_new_css_last_build);
+				$this->_write_last_build('css_file_count', count($files));
+			} else 
+			{
+				$cf = md5($this->_last_build_config['css_last_build']) . '.css';
+				$css = $this->_tag('css', $this->_config['cache_base_url'] . $cf);
 			}
 		}
 		
@@ -175,10 +189,8 @@ class Cloudmixer
 			} else 
 			{
 				$files[] = $this->_config['script_dir'] . $row;
-				$this->_css_last_modified = max($this->_css_last_modified, 
+				$this->_js_last_modified = max($this->_js_last_modified, 
 																		filemtime(realpath($this->_config['script_dir'] . $row)));
-																				
-				//$js .= $this->_minify('js', $this->_config['script_dir'] . $row);
 			}
 		}
 		
@@ -186,22 +198,73 @@ class Cloudmixer
 		// cached javascript file. 
 		if($this->_production)
 		{
-			if($this->_js_last_modified > $this->_js_last_build)
+			if(($this->_js_last_modified > $this->_last_build_config['js_last_build']) ||
+					($this->_last_build_config['js_file_count'] != count($files)))
 			{
 				$mini = '';
+				
 				foreach($files AS $key => $row)
 				{
-					$name =  md5($this->_js_last_modified) . '.js';
-					$new = $this->_config['cache_dir'] . $name;
 					$mini .= $this->_minify('js', $row);
-					file_put_contents($new, trim($mini));
-					$this->_new_js_last_build = time();
-					$js = $this->_tag('js', $this->_config['cache_base_url'] . $name);
 				}
+				
+				// Write out minified file.
+				$this->_new_js_last_build = time();
+				$name = md5($this->_new_js_last_build) . '.js';
+				$new = $this->_config['cache_dir'] . $name;
+				file_put_contents($new, trim($mini));
+				
+				$js = $this->_tag('js', $this->_config['cache_base_url'] . $name);
+				$this->_write_last_build('js_last_build', $this->_new_js_last_build);
+				$this->_write_last_build('js_file_count', count($files));
+			} else 
+			{
+				$cf = md5($this->_last_build_config['js_last_build'])  . '.js';
+				$js = $this->_tag('js', $this->_config['cache_base_url'] . $cf);
 			}
 		}
 		
 		return $js;
+	}
+	
+	//
+	// Write Log: We pass in a key value pair that is then updated
+	// In the last build log file. We keep these configs on hand
+	// to safe extra file IO.
+	//
+	private function _write_last_build($key, $val)
+	{		
+		$this->_load_last_build();
+		$this->_last_build_config[$key] = $val;
+		file_put_contents($this->_build_file, json_encode($this->_last_build_config));
+		chmod($this->_build_file, 0600);
+	}
+	
+	//
+	// Load last build config. Read from file and load
+	// an array that is shared throughout.
+	//
+	private function _load_last_build()
+	{
+		// Is the file even present?
+		if(! is_file($this->_build_file))
+		{
+			touch($this->_build_file);
+		} 
+		
+		// Get current config and make a php object
+		$str = file_get_contents($this->_build_file);
+		$this->_last_build_config = json_decode($str, TRUE);
+		
+		// Set some default values.
+		$a = array('js_last_build', 'css_last_build', 'css_file_count', 'js_file_count');
+		foreach($a AS $key => $row)
+		{
+			if(! isset($this->_last_build_config[$row])) 
+			{	 
+				$this->_last_build_config[$row] = 0; 
+			}
+		} 
 	}
 	
 	//

@@ -10,9 +10,9 @@
 |
 */
 
-$config['js_base_url'] = base_url() . 'assets/javascript/';
-$config['css_base_url'] = base_url() . 'assets/css/';
-$config['cache_base_url'] = base_url() . 'cache/';
+$config['combine']['js_base_url'] = base_url() . 'assets/javascript/';
+$config['combine']['css_base_url'] = base_url() . 'assets/css/';
+$config['combine']['cache_base_url'] = base_url() . 'cache/';
 
 /*
 |--------------------------------------------------------------------------
@@ -23,8 +23,8 @@ $config['cache_base_url'] = base_url() . 'cache/';
 |
 */
 
-$config['script_dir'] = 'assets/javascript/';
-$config['style_dir'] = 'assets/css/';
+$config['combine']['script_dir'] = 'assets/javascript/';
+$config['combine']['style_dir'] = 'assets/css/';
 
 
 /*
@@ -37,6 +37,6 @@ $config['style_dir'] = 'assets/css/';
 |
 */
 
-$config['cache_dir'] = 'cache/';
+$config['combine']['cache_dir'] = 'cache/';
 
 /* End File */
