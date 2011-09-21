@@ -52,8 +52,8 @@ $config['combine']['cache_dir'] = 'cache/';
 |
 */
 
-$config['combine']['rs_container'] = 'assets';
-$config['combine']['rs_url'] = 'https://c752182.ssl.cf2.rackcdn.com/';
+$config['combine']['rs_container'] = '';
+$config['combine']['rs_url'] = '';
 
 
 /*
@@ -79,8 +79,8 @@ $config['combine']['rs_url'] = 'https://c752182.ssl.cf2.rackcdn.com/';
 |
 */
 
-$config['combine']['folders'][] = array('name' => 'images', 'path' => './assets/css/images');
-$config['combine']['folders'][] = array('name' => 'fonts', 'path' => './assets/css/fonts');
+//$config['combine']['folders'][] = array('name' => 'images', 'path' => './assets/css/images');
+//$config['combine']['folders'][] = array('name' => 'fonts', 'path' => './assets/css/fonts');
 
 
 /* End File */
