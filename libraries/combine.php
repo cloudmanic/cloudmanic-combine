@@ -413,6 +413,9 @@ class Combine
 				$files = glob($row['path'] . '/*');
 				foreach($files AS $key2 => $row2)
 				{
+					// Just files. Maybe some day we will support many layers of folders.
+					if(! is_file($row2)) { continue; }
+					
 					$hash = md5_file($row2);
 					$name = basename($row2);
 					
