@@ -29,6 +29,7 @@ class Combine
 	private $_last_build_config = array();
 	private $_css_last_modified = 0;
 	private $_js_last_modified = 0;
+	private $_folder_run = FALSE;
 	
 	//
 	// Constructor ….
@@ -44,7 +45,7 @@ class Combine
 		{
 			$this->_production = FALSE;
 		}
-		
+
 		// Make sure the config folder is writeable.
 		$this->_check_cache_dir();
 		
@@ -53,9 +54,6 @@ class Combine
 		// timestamp newer than this value. This is how we know to rebuild.
 		$this->_build_file = $this->_config['cache_dir'] . $this->_build_file_name;
 		$this->_load_last_build();
-		
-		
-					$this->_production = TRUE;
 					
 		log_message('debug', 'Combine Library initialized.');
 	}
@@ -91,10 +89,26 @@ class Combine
 	// versions we create them. If we are in development mode we just deliver 
 	// the development files with script and link tags.
 	//
-	function build()
+	function build($type = 'all')
 	{
-		$build = $this->_build_css();		
-		$build .= $this->_build_js();
+		$build = ''; 
+		
+		switch($type)
+		{
+			case 'css':
+				$build = $this->_build_css();
+			break;
+
+			case 'js':
+				$build = $this->_build_js();
+			break;
+		
+			default:
+				$build = $this->_build_css();		
+				$build .= $this->_build_js();
+			break;
+		}
+		
 		return $build;
 	}
 	
@@ -148,7 +162,7 @@ class Combine
 				$mini = '';
 				
 				foreach($files AS $key => $row)
-				{
+				{ 
 					$mini .= $this->_minify('css', $row);
 				}
 				
@@ -158,13 +172,28 @@ class Combine
 				$new = $this->_config['cache_dir'] . $name;
 				file_put_contents($new, trim($mini));
 				
-				$css = $this->_tag('css', $this->_config['cache_base_url'] . $name);
 				$this->_write_last_build('css_last_build', $this->_new_css_last_build);
 				$this->_write_last_build('css_file_count', count($files));
+				
+				// See if we should send this to Rackspace Cloud Files.
+				if(! $url = $this->_rackspace_upload($new, $name, 'text/css'))
+				{
+					$url = $this->_config['cache_base_url'] . $name;
+				}
+				
+				$css = $this->_tag('css', $url);
 			} else 
 			{
 				$cf = md5($this->_last_build_config['css_last_build']) . '.css';
-				$css = $this->_tag('css', $this->_config['cache_base_url'] . $cf);
+				
+				// Check to see if one of the cloud storage providers was set.
+				if((! empty($this->_config['rs_container'])) && (! empty($this->_config['rs_url'])))
+				{
+					$css = $this->_tag('css', $this->_config['rs_url'] . $cf);
+				} else 
+				{
+					$css = $this->_tag('css', $this->_config['cache_base_url'] . $cf);
+				}
 			}
 		}
 		
@@ -214,13 +243,28 @@ class Combine
 				$new = $this->_config['cache_dir'] . $name;
 				file_put_contents($new, trim($mini));
 				
-				$js = $this->_tag('js', $this->_config['cache_base_url'] . $name);
 				$this->_write_last_build('js_last_build', $this->_new_js_last_build);
 				$this->_write_last_build('js_file_count', count($files));
+				
+				// See if we should send this to Rackspace Cloud Files.
+				if(! $url = $this->_rackspace_upload($new, $name, 'application/x-javascript'))
+				{
+					$url = $this->_config['cache_base_url'] . $name;
+				}
+				
+				$js = $this->_tag('js', $url);
 			} else 
 			{
 				$cf = md5($this->_last_build_config['js_last_build'])  . '.js';
-				$js = $this->_tag('js', $this->_config['cache_base_url'] . $cf);
+				
+				// Check to see if one of the cloud storage providers was set.
+				if((! empty($this->_config['rs_container'])) && (! empty($this->_config['rs_url'])))
+				{
+					$js = $this->_tag('js', $this->_config['rs_url'] . $cf);
+				} else 
+				{
+					$js = $this->_tag('js', $this->_config['cache_base_url'] . $cf);
+				}
 			}
 		}
 		
@@ -309,5 +353,77 @@ class Combine
 				return '<script type="text/javascript" src="' . $url . '"></script>' . "\r\n";
 			break;
 		}
+	}
+	
+	// ----------- Cloud Storage Providers -------------- //
+	
+	//
+	// If we have enabled racksace cloud files this function 
+	// will upload any newly combined files to Rackspace 
+	// Cloud Files.
+	//
+	private function _rackspace_upload($path, $name, $type) 
+	{
+		if((! empty($this->_config['rs_container'])) && (! empty($this->_config['rs_url'])))
+		{
+		  $this->_CI->load->spark('cloudmanic-storage/1.0.1');
+		  $this->_CI->storage->load_driver('rackspace-cf');
+		  $this->_CI->storage->upload_file($this->_config['rs_container'], $path, $name, $type);
+		  
+		  // Check to see if we need to update any folders.
+		  if(! $this->_folder_run)
+		  {
+				$this->_rackspace_folder_sync();
+		  }
+		  		  
+		  return $this->_config['rs_url'] . $name;
+		} 
+		
+		return FALSE;
+	}
+	
+	//
+	// Here we check to see if we need to sync up assets that live in
+	// folders to rackspace. We only check this if CSS or JS files
+	// have been changed and re-uploaded to cloudfiles.
+	//
+	private function _rackspace_folder_sync()
+	{		  
+		if(isset($this->_config['folders']) && is_array($this->_config['folders']))
+		{
+			foreach($this->_config['folders'] AS $key => $row)
+			{
+				if(! is_dir($row['path']))
+				{
+					show_error('Combine - Could not open directory: ' . $row['path']);
+				} 
+						
+				// Make a "hash table" for looking up if the file is already at Rackspace
+				$rs = $this->_CI->storage->list_files($this->_config['rs_container'], $row['name']);
+				$rs_to_hash = array();
+				$rs_to_name = array();
+				foreach($rs AS $key2 => $row2)
+				{
+					$rs_to_hash[$row2['hash']] = TRUE;
+					$rs_to_name[$row2['name']] = TRUE;					
+				}
+				
+				// Loop through the different files and compare the files
+				// that are at rackspace. We check md5 hashes.
+				$files = glob($row['path'] . '/*');
+				foreach($files AS $key2 => $row2)
+				{
+					$hash = md5_file($row2);
+					$name = basename($row2);
+					
+					if((! isset($rs_to_hash[$hash])) || (! isset($rs_to_name[$row['name'] . '/' . $name])))
+					{
+						$this->_CI->storage->upload_file($this->_config['rs_container'], $row2, $row['name'] . '/' . $name);
+					}
+				}
+			}
+			
+			$this->_folder_run = TRUE;
+		}		
 	}
 }
