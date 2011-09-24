@@ -8,5 +8,6 @@ version: 1.0.0
 #  be in x.x.x format
 compatibility: 2.0.0
 
-# There are no dependencies now, but when there are, uncomment below.
-dependencies: cloudmanic-storage: 1.0.2
+# Dependencies
+dependencies: 
+	cloudmanic-storage: 1.0.2
