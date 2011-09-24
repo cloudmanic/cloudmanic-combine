@@ -69,6 +69,11 @@ $config['combine']['rs_url'] = '';
 | storage provider set at a time. The system will only use one of them.
 | (please include a trailing slash on az_url)
 |
+| $config['combine']['az_bucket'] = 'assets';
+| $config['combine']['az_url'] = 'https://s3.amazonaws.com/assets/';
+|
+| Make sure you create this container with Amazon S3
+|
 */
 
 $config['combine']['az_bucket'] = '';

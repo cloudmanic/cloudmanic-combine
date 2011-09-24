@@ -384,7 +384,7 @@ class Combine
 	{
 		if((! empty($this->_config['rs_container'])) && (! empty($this->_config['rs_url'])))
 		{
-		  $this->_CI->load->spark('cloudmanic-storage/1.0.1');
+		  $this->_CI->load->spark('cloudmanic-storage/1.0.2');
 		  $this->_CI->storage->load_driver('rackspace-cf');
 		  $this->_CI->storage->upload_file($this->_config['rs_container'], $path, $name, $type);
 		  
@@ -408,7 +408,7 @@ class Combine
 	{
 		if((! empty($this->_config['az_bucket'])) && (! empty($this->_config['az_url'])))
 		{
-		  $this->_CI->load->spark('cloudmanic-storage/1.0.1');
+		  $this->_CI->load->spark('cloudmanic-storage/1.0.2');
 		  $this->_CI->storage->load_driver('amazon-s3');
 		  $this->_CI->storage->upload_file($this->_config['az_bucket'], $path, $name, $type, 'public');
 		  
