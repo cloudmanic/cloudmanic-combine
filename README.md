@@ -26,7 +26,7 @@ Another Note: On first upload of your assets to your cloud storage provider the 
 
 ## Development Modes
 
-This library supports development modes. It uses ```defined('ENVIRONMENT')``` from index.php to determine which development mode we are in. If "ENVIRONMENT" is set to "development" the library will not combine the assets. It will simply return a css / js tag per file. If we are in "production" or "testing" it will combine the assets.
+This library supports development modes. It uses defined('ENVIRONMENT') from index.php to determine which development mode we are in. If "ENVIRONMENT" is set to "development" the library will not combine the assets. It will simply return a css / js tag per file. If we are in "production" or "testing" it will combine the assets.
 
 Please note assets are only combined and minimized if files have changed we do not minimized and combine on every page load. 
 
