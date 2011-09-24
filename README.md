@@ -52,7 +52,7 @@ echo $this->combine->build();
 
 build() will combine and output tags for both css and javascript. An alternative would be to pass in an argument. build('css') or build('js');
 
-Build() returns link and or script tags. Such ass…..
+Build() returns link and or script tags. Such as...
 
 ```
 <link type="text/css" rel="stylesheet" href="http://example.org/cache/blah.css" media="screen" />
