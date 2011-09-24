@@ -60,6 +60,16 @@ Build() returns link and or script tags. Such as...
 
 ```
 
+## Git
+
+This is useful to put in your .gitignore file. No need to put cached files into your Repo. 
+
+```
+public/cache/*.txt
+public/cache/*.css
+public/cache/*.js
+```
+
 ## Author(s) 
 
 Company: Cloudmanic Labs, [http://cloudmanic.com](http://cloudmanic.com)

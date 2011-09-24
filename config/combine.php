@@ -107,6 +107,6 @@ $config['combine']['az_url'] = '';
 |
 */
 
-$config['combine']['folders'][] = array();
+// $config['combine']['folders'][] = array(); 
 
 /* End File */
