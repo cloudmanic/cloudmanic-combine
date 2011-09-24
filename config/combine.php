@@ -48,12 +48,31 @@ $config['combine']['cache_dir'] = 'cache/';
 |
 | If you setup the configs below your assets will be uploaded to Rackspace 
 | CloudFiles. A css / js tag with a direct url to these files will be returned
-| when in production mode. (please include a trailing slash on rs_url)
-|
+| when in production mode. Please note you can only have one cloud 
+| storage provider set at a time. The system will only use one of them.
+| (please include a trailing slash on rs_url)
+||
 */
 
 $config['combine']['rs_container'] = '';
 $config['combine']['rs_url'] = '';
+
+
+/*
+|--------------------------------------------------------------------------
+| Amazon S3
+|--------------------------------------------------------------------------
+|
+| If you setup the configs below your assets will be uploaded to Amazon 
+| S3. A css / js tag with a direct url to these files will be returned
+| when in production mode. Please note you can only have one cloud 
+| storage provider set at a time. The system will only use one of them.
+| (please include a trailing slash on az_url)
+|
+*/
+
+$config['combine']['az_bucket'] = '';
+$config['combine']['az_url'] = '';
 
 
 /*
@@ -77,10 +96,12 @@ $config['combine']['rs_url'] = '';
 | delete it you just broke thier link. If you update or add a file to the folders
 | the file will make its way to your cloud storage provider.
 |
+| $config['combine']['folders'][] = array('name' => 'images', 'path' => './assets/css/images');
+| $config['combine']['folders'][] = array('name' => 'fonts', 'path' => './assets/css/fonts');
+|
+|
 */
 
-//$config['combine']['folders'][] = array('name' => 'images', 'path' => './assets/css/images');
-//$config['combine']['folders'][] = array('name' => 'fonts', 'path' => './assets/css/fonts');
-
+$config['combine']['folders'][] = array();
 
 /* End File */

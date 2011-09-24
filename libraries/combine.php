@@ -181,6 +181,12 @@ class Combine
 					$url = $this->_config['cache_base_url'] . $name;
 				}
 				
+				// See if we should send this to Amazon S3.
+				if(! $url = $this->_amazon_upload($new, $name, 'text/css'))
+				{
+					$url = $this->_config['cache_base_url'] . $name;
+				}
+				
 				$css = $this->_tag('css', $url);
 			} else 
 			{
@@ -190,6 +196,9 @@ class Combine
 				if((! empty($this->_config['rs_container'])) && (! empty($this->_config['rs_url'])))
 				{
 					$css = $this->_tag('css', $this->_config['rs_url'] . $cf);
+				} else if((! empty($this->_config['az_bucket'])) && (! empty($this->_config['az_url'])))
+				{ 
+					$css = $this->_tag('css', $this->_config['az_url'] . $cf);				
 				} else 
 				{
 					$css = $this->_tag('css', $this->_config['cache_base_url'] . $cf);
@@ -250,6 +259,12 @@ class Combine
 				if(! $url = $this->_rackspace_upload($new, $name, 'application/x-javascript'))
 				{
 					$url = $this->_config['cache_base_url'] . $name;
+				} 
+
+				// See if we should send this to Amazon S3.				
+				if(! $url = $this->_amazon_upload($new, $name, 'application/x-javascript'))
+				{
+					$url = $this->_config['cache_base_url'] . $name;
 				}
 				
 				$js = $this->_tag('js', $url);
@@ -261,6 +276,9 @@ class Combine
 				if((! empty($this->_config['rs_container'])) && (! empty($this->_config['rs_url'])))
 				{
 					$js = $this->_tag('js', $this->_config['rs_url'] . $cf);
+				} else if((! empty($this->_config['az_bucket'])) && (! empty($this->_config['az_url'])))
+				{
+					$js = $this->_tag('js', $this->_config['az_url'] . $cf);				
 				} else 
 				{
 					$js = $this->_tag('js', $this->_config['cache_base_url'] . $cf);
@@ -373,7 +391,7 @@ class Combine
 		  // Check to see if we need to update any folders.
 		  if(! $this->_folder_run)
 		  {
-				$this->_rackspace_folder_sync();
+				$this->_cloud_folder_sync($this->_config['rs_container']);
 		  }
 		  		  
 		  return $this->_config['rs_url'] . $name;
@@ -381,13 +399,37 @@ class Combine
 		
 		return FALSE;
 	}
+
+	//
+	// If we have enabled Amazon S3 this function 
+	// will upload any newly combined files to Amazon.
+	//
+	private function _amazon_upload($path, $name, $type) 
+	{
+		if((! empty($this->_config['az_bucket'])) && (! empty($this->_config['az_url'])))
+		{
+		  $this->_CI->load->spark('cloudmanic-storage/1.0.1');
+		  $this->_CI->storage->load_driver('amazon-s3');
+		  $this->_CI->storage->upload_file($this->_config['az_bucket'], $path, $name, $type, 'public');
+		  
+		  // Check to see if we need to update any folders.
+		  if(! $this->_folder_run)
+		  {
+				$this->_cloud_folder_sync($this->_config['az_bucket']);
+		  }
+		  		  
+		  return $this->_config['az_url'] . $name;
+		} 
+		
+		return FALSE;
+	}
 	
 	//
 	// Here we check to see if we need to sync up assets that live in
-	// folders to rackspace. We only check this if CSS or JS files
+	// folders to our cloud provider. We only check this if CSS or JS files
 	// have been changed and re-uploaded to cloudfiles.
 	//
-	private function _rackspace_folder_sync()
+	private function _cloud_folder_sync($cont)
 	{		  
 		if(isset($this->_config['folders']) && is_array($this->_config['folders']))
 		{
@@ -399,7 +441,7 @@ class Combine
 				} 
 						
 				// Make a "hash table" for looking up if the file is already at Rackspace
-				$rs = $this->_CI->storage->list_files($this->_config['rs_container'], $row['name']);
+				$rs = $this->_CI->storage->list_files($cont, $row['name']);
 				$rs_to_hash = array();
 				$rs_to_name = array();
 				foreach($rs AS $key2 => $row2)
@@ -421,7 +463,7 @@ class Combine
 					
 					if((! isset($rs_to_hash[$hash])) || (! isset($rs_to_name[$row['name'] . '/' . $name])))
 					{
-						$this->_CI->storage->upload_file($this->_config['rs_container'], $row2, $row['name'] . '/' . $name);
+						$this->_CI->storage->upload_file($cont, $row2, $row['name'] . '/' . $name, NULL, 'public');
 					}
 				}
 			}
