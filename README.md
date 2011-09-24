@@ -9,6 +9,8 @@ This library also allows you to keep assets files that are not js / css uploaded
 
 One more note: You do not need to use a cloud storage provider to use this library. It is just a nice option.
 
+Another Note: On first upload of your assets to your cloud storage provider the page reload might take a whil as it is transferring files. 
+
 ## Requirements
 
 1. PHP 5.1+
@@ -20,6 +22,13 @@ One more note: You do not need to use a cloud storage provider to use this libra
 - Rackspace Cloudfiles ::: [http://www.rackspace.com/cloud/cloud_hosting_products/files/](http://www.rackspace.com/cloud/cloud_hosting_products/files/)
 
 - Amazon.com S3 ::: [http://aws.amazon.com/s3/](http://aws.amazon.com/s3/)
+
+
+## Development Modes
+
+This library supports development modes. It uses ```defined('ENVIRONMENT')``` from index.php to determine which development mode we are in. If "ENVIRONMENT" is set to "development" the library will not combine the assets. It will simply return a css / js tag per file. If we are in "production" or "testing" it will combine the assets.
+
+Please note assets are only combined and minimized if files have changed we do not minimized and combine on every page load. 
 
 ## Sparks
 
@@ -40,3 +49,18 @@ $this->combine->js('blog.js');
 
 echo $this->combine->build();
 ```
+
+build() will combine and output tags for both css and javascript. An alternative would be to pass in an argument. build('css') or build('js');
+
+Build() returns link and or script tags. Such ass…..
+
+```
+<link type="text/css" rel="stylesheet" href="http://example.org/cache/blah.css" media="screen" />
+<script type="text/javascript" src="http://example.org/cache/blah.js"></script>
+
+```
+
+## Author(s) 
+
+Company: Cloudmanic Labs, [http://cloudmanic.com](http://cloudmanic.com)
+By: Spicer Matthews [http://spicermatthews.com](http://spicermatthews.com)
