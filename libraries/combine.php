@@ -66,7 +66,9 @@ class Combine
 	//
 	function js($path)
 	{
-		$this->_js[] = $path;
+		$this->_js = array_merge($this->_js, (array)$path);
+		
+		return $this;
 	}
 	
 	//
@@ -77,7 +79,9 @@ class Combine
 	//
 	function css($path)
 	{
-		$this->_css[] = $path;
+		$this->_css = array_merge($this->_css, (array)$path);
+		
+		return $this;
 	}
 	
 	//
