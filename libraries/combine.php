@@ -7,10 +7,9 @@
 //
 // Description: This library provides a way to maintain 
 //							javascript and CSS files for development 
-//							and production. It uses the CI 2.0 defined('ENVIRONMENT')
-//							to determine if we are in production or development mode.
-//							When in development modes the files are just served normally.
-//							When in production the files are minimized and conbined into
+//							and production. It uses the config option "enabled"
+//							to determine whether to serve the files normally, 
+//							or to minimize and conbine files into
 //							one js file and one css file. We also have the option 
 //							to push the file to different CDNs (ie. Rackspace cloudfiles).
 //							This library only combines and minimizes if the development
@@ -23,7 +22,6 @@ class Combine
 	private $_config;
 	private $_js = array();
 	private $_css = array();
-	private $_production = TRUE;
 	private $_build_file_name = 'last_build.txt';
 	private $_build_file;
 	private $_last_build_config = array();
@@ -39,18 +37,12 @@ class Combine
 		$this->_CI =& get_instance();
 		$this->_config = $this->_CI->config->item('combine');
 		
-		// Figure out what mode we are in. If in development we don't do
-		// much heavly lifting.
-		if(ENVIRONMENT == 'development')
-		{
-			$this->_production = FALSE;
-		}
 
 		// Make sure the config folder is writeable.
 		$this->_check_cache_dir();
 		
 		// We store a text file with a time stamp of the last modified.
-		// When in production we look for any files that have a modify
+		// When combine is enabled we look for any files that have a modify
 		// timestamp newer than this value. This is how we know to rebuild.
 		$this->_build_file = $this->_config['cache_dir'] . $this->_build_file_name;
 		$this->_load_last_build();
@@ -86,11 +78,11 @@ class Combine
 	
 	//
 	// This is where all the magic starts. When we call this function 
-	// we figure out if we are in development mode or production mode.
-	// If in production we see if we have already created a minimized / 
+	// we figure out if combine is enabled or not.
+	// If enabled we see if we have already created a minimized / 
 	// combined version of our js & css assets or if the development files 
 	// have changed. If they have changed or we have not created the development
-	// versions we create them. If we are in development mode we just deliver 
+	// versions we create them. If combine is disabled we just deliver 
 	// the development files with script and link tags.
 	//
 	function build($type = 'all')
@@ -134,8 +126,8 @@ class Combine
 	}
 	
 	//
-	// Build and return the css link tags to be displayed. If in 
-	// production we make or grab the combined file.
+	// Build and return the css link tags to be displayed. If combine
+	// is enabled we make or grab the combined file.
 	//
 	private function _build_css()
 	{
@@ -144,8 +136,8 @@ class Combine
 		
 		foreach($this->_css AS $key => $row)
 		{
-			// Production or not...
-			if(! $this->_production)
+			// Is Combine enabled?
+			if(! $this->_config['enabled'])
 			{
 				$css .= $this->_tag('css', $this->_config['css_base_url'] . $row);
 			} else 
@@ -156,20 +148,23 @@ class Combine
 			}
 		}
 		
-		// Now if we are in production and we have a modified file we update the 
+		// Now if combine is enabled and we have a modified file we update the 
 		// cached css file. 
-		if($this->_production)
+		if($this->_config['enabled'])
 		{
 			if(($this->_css_last_modified > $this->_last_build_config['css_last_build']) ||
 					($this->_last_build_config['css_file_count'] != count($files)))
 			{
-				$mini = '';
 				
+				
+				$mini = '';
+			
 				foreach($files AS $key => $row)
 				{ 
 					$mini .= $this->_minify('css', $row);
 				}
 				
+	
 				// Write out new minified file.
 				$this->_new_css_last_build = time();
 				$name =  md5($this->_new_css_last_build) . '.css';
@@ -214,8 +209,8 @@ class Combine
 	}
 	
 	//
-	// Build and return the javascript script tags to be displayed. If in 
-	// production we make or grab the combined file.
+	// Build and return the javascript script tags to be displayed. If combine
+	// is enabled we make or grab the combined file.
 	//
 	private function _build_js()
 	{
@@ -224,8 +219,8 @@ class Combine
 		
 		foreach($this->_js AS $key => $row)
 		{
-			// Production or not...
-			if(! $this->_production)
+			// Enabled or not...
+			if(! $this->_config['enabled'])
 			{
 				$js .= $this->_tag('js', $this->_config['js_base_url'] . $row);
 			} else 
@@ -236,19 +231,21 @@ class Combine
 			}
 		}
 		
-		// Now if we are in production and we have a modified file we update the 
+		// Now if combine is enabled and we have a modified file we update the 
 		// cached javascript file. 
-		if($this->_production)
+		if($this->_config['enabled'])
 		{
 			if(($this->_js_last_modified > $this->_last_build_config['js_last_build']) ||
 					($this->_last_build_config['js_file_count'] != count($files)))
 			{
+				
 				$mini = '';
 				
 				foreach($files AS $key => $row)
 				{
 					$mini .= $this->_minify('js', $row);
 				}
+
 				
 				// Write out minified file.
 				$this->_new_js_last_build = time();
@@ -344,15 +341,31 @@ class Combine
 		switch($type)
 		{
 			case 'css':
-				$this->_CI->load->library('cssmin');
+				
 				$contents = file_get_contents($path);
-				return $this->_CI->cssmin->minify($contents);
+				
+				if ($this->_config['minify_css'])
+				{
+					$this->_CI->load->library('cssmin');
+					$contents = $this->_CI->cssmin->minify($contents);
+				}
+				
+				return $contents;
+				
 			break;
 			
 			case 'js':
-				$this->_CI->load->library('jsmin');
+				
 				$contents = file_get_contents($path);
-				return $this->_CI->jsmin->minify($contents);
+				
+				if ($this->_config['minify_js'])
+				{
+					$this->_CI->load->library('jsmin');
+					$contents = $this->_CI->jsmin->minify($contents);
+				}
+				
+				return $contents;
+
 			break;
 		}
 		

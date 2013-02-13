@@ -1,5 +1,23 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
+
+/*
+|--------------------------------------------------------------------------
+| Enable Combine, Minification
+|--------------------------------------------------------------------------
+|
+| If not enabled, combine will simply return all your
+| stylesheets and javascript files individually. 
+|
+| If enabled, you can also toggle whether minification is performed on 
+| included stylesheets and javascript.
+*/
+
+$config['combine']['enabled'] = TRUE;
+$config['combine']['minify_css'] = TRUE;
+$config['combine']['minify_js'] = TRUE;
+
+
 /*
 |--------------------------------------------------------------------------
 | URL Base 
