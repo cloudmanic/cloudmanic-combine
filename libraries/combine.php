@@ -63,6 +63,75 @@ class Combine
 		return $this;
 	}
 	
+	
+	function js_folder($path, $depth = 1, $dependencies = FALSE, $exclusions = array())
+	{
+			
+		if (! is_array($exclusions))
+		{
+			$exclusions = (array) $exclusions;
+		}
+
+		//load dependencies first
+		if ($dependencies)
+		{
+			if (! is_array($dependencies))
+			{
+				$dependencies = (array) $dependencies;
+			}	
+				
+			foreach($dependencies as $i=>$dependency){
+				
+				$dependencies[$i] = $path . DIRECTORY_SEPARATOR . $dependency;
+			}
+				
+			$this->js($dependencies);
+			
+			$exclusions = array_merge($exclusions, $dependencies);
+		}
+		
+		//only add assets path once
+		if (strpos($path, $this->_config['script_dir']) === FALSE)
+		{
+			$source_dir = $this->_config['script_dir'].$path;
+		}	
+		
+		if ($fp = @opendir($source_dir))
+		{
+			$files	= array();
+			$new_depth	= $depth - 1;
+			$source_dir	= rtrim($source_dir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+
+			while (FALSE !== ($file = readdir($fp)))
+			{
+				// Remove '.', '..', and hidden files [optional]
+				if ( ! trim($file, '.') OR $file[0] === '.')
+				{
+					continue;
+				}					
+				
+				if (@is_dir($source_dir.$file)){
+					
+					if (($depth < 1 OR $new_depth > 0) )
+					{	
+						$this->js_folder($path.DIRECTORY_SEPARATOR.$file, $new_depth, FALSE, $exclusions);
+					}
+				}
+				else if (substr($file,-3) == '.js' && !in_array($path.DIRECTORY_SEPARATOR.$file, $exclusions))
+				{	
+					$this->js($path.DIRECTORY_SEPARATOR.$file);
+				}
+
+			}
+
+			closedir($fp);
+		}
+
+		return $this;
+	}
+	
+	
+	
 	//
 	// Add a CSS file to the list. We add different CSS files
 	// and then when we run the build() function we figure out what to do with 
@@ -73,6 +142,73 @@ class Combine
 	{
 		$this->_css = array_merge($this->_css, (array)$path);
 		
+		return $this;
+	}
+	
+	
+	function css_folder($path, $depth = 1, $dependencies = FALSE, $exclusions = array())
+	{
+			
+		if (! is_array($exclusions))
+		{
+			$exclusions = (array) $exclusions;
+		}
+
+		//load dependencies first
+		if ($dependencies)
+		{
+			if (! is_array($dependencies))
+			{
+				$dependencies = (array) $dependencies;
+			}	
+				
+			foreach($dependencies as $i=>$dependency){
+				
+				$dependencies[$i] = $path . DIRECTORY_SEPARATOR . $dependency;
+			}
+				
+			$this->css($dependencies);
+			
+			$exclusions = array_merge($exclusions, $dependencies);
+		}
+		
+		//only add assets path once
+		if (strpos($path, $this->_config['style_dir']) === FALSE)
+		{
+			$source_dir = $this->_config['style_dir'].$path;
+		}	
+		
+		if ($fp = @opendir($source_dir))
+		{
+			$files	= array();
+			$new_depth	= $depth - 1;
+			$source_dir	= rtrim($source_dir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+
+			while (FALSE !== ($file = readdir($fp)))
+			{
+				// Remove '.', '..', and hidden files [optional]
+				if ( ! trim($file, '.') OR $file[0] === '.')
+				{
+					continue;
+				}					
+				
+				if (@is_dir($source_dir.$file)){
+					
+					if (($depth < 1 OR $new_depth > 0) )
+					{	
+						$this->css_folder($path.DIRECTORY_SEPARATOR.$file, $new_depth, FALSE, $exclusions);
+					}
+				}
+				else if (substr($file,-4) == '.css' && !in_array($path.DIRECTORY_SEPARATOR.$file, $exclusions))
+				{	
+					$this->css($path.DIRECTORY_SEPARATOR.$file);
+				}
+
+			}
+
+			closedir($fp);
+		}
+
 		return $this;
 	}
 	
