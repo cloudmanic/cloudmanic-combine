@@ -478,12 +478,13 @@ class Combine
 		{
 			case 'css':
 				
-				$contents = file_get_contents($path);
-				
-				if ($this->_config['minify_css'])
+				if ($contents = @file_get_contents($path))
 				{
-					$this->_CI->load->library('cssmin');
-					$contents = $this->_CI->cssmin->minify($contents);
+					if ($this->_config['minify_css'])
+					{
+						$this->_CI->load->library('cssmin');
+						$contents = $this->_CI->cssmin->minify($contents);
+					}
 				}
 				
 				return $contents;
@@ -492,12 +493,14 @@ class Combine
 			
 			case 'js':
 				
-				$contents = file_get_contents($path);
-				
-				if ($this->_config['minify_js'])
+				if ($contents = @file_get_contents($path))
 				{
-					$this->_CI->load->library('jsmin');
-					$contents = $this->_CI->jsmin->minify($contents);
+			
+					if ($this->_config['minify_js'])
+					{
+						$this->_CI->load->library('jsmin');
+						$contents = $this->_CI->jsmin->minify($contents);
+					}
 				}
 				
 				return $contents;
