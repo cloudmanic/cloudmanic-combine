@@ -82,12 +82,11 @@ class Combine
 				
 			foreach($dependencies as $i=>$dependency){
 				
-				$dependencies[$i] = $path . DIRECTORY_SEPARATOR . $dependency;
+				$dependencies[$i] = $path . '/' . $dependency;
+				$exclusions[] = $dependency;
 			}
 				
 			$this->js($dependencies);
-			
-			$exclusions = array_merge($exclusions, $dependencies);
 		}
 		
 		//only add assets path once
@@ -100,7 +99,7 @@ class Combine
 		{
 			$files	= array();
 			$new_depth	= $depth - 1;
-			$source_dir	= rtrim($source_dir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+			$source_dir	= rtrim($source_dir, '/').'/';
 
 			while (FALSE !== ($file = readdir($fp)))
 			{
@@ -114,12 +113,12 @@ class Combine
 					
 					if (($depth < 1 OR $new_depth > 0) )
 					{	
-						$this->js_folder($path.DIRECTORY_SEPARATOR.$file, $new_depth, FALSE, $exclusions);
+						$this->js_folder($path.'/'.$file, $new_depth, FALSE, $exclusions);
 					}
 				}
-				else if (substr($file,-3) == '.js' && !in_array($path.DIRECTORY_SEPARATOR.$file, $exclusions))
+				else if (substr($file,-3) == '.js' && !in_array($file, $exclusions))
 				{	
-					$this->js($path.DIRECTORY_SEPARATOR.$file);
+					$this->js($path.'/'.$file);
 				}
 
 			}
@@ -164,12 +163,11 @@ class Combine
 				
 			foreach($dependencies as $i=>$dependency){
 				
-				$dependencies[$i] = $path . DIRECTORY_SEPARATOR . $dependency;
+				$dependencies[$i] = $path . '/' . $dependency;
+				$exclusions[] = $dependency;
 			}
 				
 			$this->css($dependencies);
-			
-			$exclusions = array_merge($exclusions, $dependencies);
 		}
 		
 		//only add assets path once
@@ -182,7 +180,7 @@ class Combine
 		{
 			$files	= array();
 			$new_depth	= $depth - 1;
-			$source_dir	= rtrim($source_dir, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+			$source_dir	= rtrim($source_dir, '/').'/';
 
 			while (FALSE !== ($file = readdir($fp)))
 			{
@@ -196,12 +194,12 @@ class Combine
 					
 					if (($depth < 1 OR $new_depth > 0) )
 					{	
-						$this->css_folder($path.DIRECTORY_SEPARATOR.$file, $new_depth, FALSE, $exclusions);
+						$this->css_folder($path.'/'.$file, $new_depth, FALSE, $exclusions);
 					}
 				}
-				else if (substr($file,-4) == '.css' && !in_array($path.DIRECTORY_SEPARATOR.$file, $exclusions))
+				else if (substr($file,-4) == '.css' && !in_array($path.'/'.$file, $exclusions))
 				{	
-					$this->css($path.DIRECTORY_SEPARATOR.$file);
+					$this->css($path.'/'.$file);
 				}
 
 			}
