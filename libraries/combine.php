@@ -37,7 +37,9 @@ class Combine
 	function __construct()
 	{
 		$this->_CI =& get_instance();
+        $this->_CI->config->load('combine');
 		$this->_config = $this->_CI->config->item('combine');
+
 		
 		// Figure out what mode we are in. If in development we don't do
 		// much heavly lifting.
@@ -57,7 +59,7 @@ class Combine
 					
 		log_message('debug', 'Combine Library initialized.');
 	}
-	
+
 	//
 	// Add a Javascript file to the list. We add different javascript files
 	// and then when we run the build() function we figure out what to do with 
@@ -66,7 +68,7 @@ class Combine
 	//
 	function js($path)
 	{
-		$this->_js[] = $path;
+        $this->_js[] = $path;
 	}
 	
 	//
@@ -77,7 +79,7 @@ class Combine
 	//
 	function css($path)
 	{
-		$this->_css[] = $path;
+        $this->_css[] = $path;
 	}
 	
 	//
@@ -111,7 +113,15 @@ class Combine
 		
 		return $build;
 	}
-	
+
+    //
+    // Check if the supplied argument is an external asset
+    //
+
+    private function _is_external ($path){
+        return ( (strpos($path, "http://") !== false) || (strpos($path, "https://") !== false) );
+    }
+
 	// -------------- Private Helper Functions ------------------- //
 	
 	// 
@@ -137,13 +147,17 @@ class Combine
 	{
 		$css = '';
 		$files = array();
-		
+
 		foreach($this->_css AS $key => $row)
 		{
 			// Production or not...
-			if(! $this->_production)
+			if(! $this->_production || $this->_is_external($row))
 			{
-				$css .= $this->_tag('css', $this->_config['css_base_url'] . $row);
+				if ($this->_is_external($row)) {
+                    $css .= $this->_tag('css', $row);
+                } else {
+                    $css .= $this->_tag('css', $this->_config['css_base_url'] . $row);
+                }
 			} else 
 			{
 				$files[] = $this->_config['style_dir'] . $row;
@@ -217,13 +231,17 @@ class Combine
 	{
 		$js = '';
 		$files = array();
-		
+
 		foreach($this->_js AS $key => $row)
 		{
 			// Production or not...
-			if(! $this->_production)
+			if(! $this->_production || $this->_is_external($row))
 			{
-				$js .= $this->_tag('js', $this->_config['js_base_url'] . $row);
+                if ($this->_is_external($row)) {
+                    $js .= $this->_tag('js', $row);
+                } else {
+                    $js .= $this->_tag('js', $this->_config['js_base_url'] . $row);
+                }
 			} else 
 			{
 				$files[] = $this->_config['script_dir'] . $row;
